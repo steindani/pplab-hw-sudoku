@@ -1,4 +1,5 @@
 #include "UeberSolver.h"
+#include <algorithm>
 
 // Remove all in c2 from c1
 // source: http://stackoverflow.com/questions/28977799/c-equivalent-to-java-arraylist-method-removeall
@@ -6,13 +7,14 @@ template<typename Collection1, typename Collection2>
 void removeAll(Collection1& c1, const Collection2& c2)
 {
     for(auto&& i: c2)
+		
         c1.erase(std::remove_if(c1.begin(), c1.end(), [i](decltype(i) i1){return i == i1;}), c1.end());
 }
 
 template <int N>
 UeberSolver<N>::UeberSolver(const char * init)
 {
-	const vector<char> base;
+	vector<char> base;
 	for (int i = 1; i <= N; ++i)
 		base.push_back(i);
 
@@ -20,8 +22,8 @@ UeberSolver<N>::UeberSolver(const char * init)
 	{
 		for	(int j = 0; j < N; ++j)
 		{
-			const char value = init[i * N + j];
-			if (value != '0')
+			const char value = init[i * N + j]-'0';
+			if (value != 0)
 			{
 				// if the value is fixed, the only possible value is the given one
 				possible[i][j].push_back(value);
@@ -29,7 +31,7 @@ UeberSolver<N>::UeberSolver(const char * init)
 			else
 			{
 				// if it is not fixed, every value is possible
-				possible[i][j](base);
+				possible[i][j] = base;
 			}
 			
 			data[i][j] = value;
@@ -39,7 +41,7 @@ UeberSolver<N>::UeberSolver(const char * init)
 	// remove for every row
 	for	(int i = 0; i < N; ++i)
 	{
-		const vector<char> rowvalues;
+		vector<char> rowvalues;
 
 		for	(int j = 0; j < N; ++j)
 		{
@@ -49,7 +51,7 @@ UeberSolver<N>::UeberSolver(const char * init)
 		for	(int j = 0; j < N; ++j)
 		{
 			// remove false possible values
-			if (data[i][j] == '0')
+			if (data[i][j] == 0)
 			{
 				removeAll(possible[i][j], rowvalues);
 				if (possible[i][j].size() == 1)
@@ -63,7 +65,7 @@ UeberSolver<N>::UeberSolver(const char * init)
 		// remove for every row
 	for	(int j = 0; j < N; ++j)
 	{
-		const vector<char> colvalues;
+		vector<char> colvalues;
 
 		for	(int i = 0; i < N; ++i)
 		{
@@ -73,7 +75,7 @@ UeberSolver<N>::UeberSolver(const char * init)
 		for	(int i = 0; i < N; ++i)
 		{
 			// remove false possible values
-			if (data[i][j] == '0')
+			if (data[i][j] == 0)
 			{
 				removeAll(possible[i][j], colvalues);
 				if (possible[i][j].size() == 1)
@@ -113,7 +115,7 @@ void UeberSolver<N>::print(std::ostream & s)
 template<int N>
 bool UeberSolver<N>::isSolved()
 {
-	// Minden cella ki van tˆltve a t·bl·ban?
+	// Minden cella ki van t√∂ltve a t√°bl√°ban?
 	for (int y = 0; y < 9; ++y)
 	{
 		for (int x = 0; x < 9; ++x)
@@ -136,9 +138,9 @@ bool UeberSolver<N>::isAllowed(char val, int x, int y)
 		if (data[i][x] == val) allowed = false;
 	}
 
-	int max = sqrt(N)
+	int max = sqrt(N);
 
-	// Az adott 3x3-as cell·ban csak egy 'val' lehet
+	// Az adott 3x3-as cell√°ban csak egy 'val' lehet
 	int cellBaseX = max * (int)(x / max);
 	int cellBaseY = max * (int)(y / max);
 	for (int y = cellBaseY; y < cellBaseY + max; ++y)
@@ -155,42 +157,42 @@ bool UeberSolver<N>::isAllowed(char val, int x, int y)
 template<int N>
 bool UeberSolver<N>::solveBackTrack()
 {
-	// KÈszen vagyunk?
+	// K√©szen vagyunk?
 	if (isSolved())
 	{
 		return true;
 	}
 
-	// Keress¸nk egy pozÌciÛt, amely mÈg nincs kitˆltve
+	// Keress√ºnk egy poz√≠ci√≥t, amely m√©g nincs kit√∂ltve
 	for (int y = 0; y < N; ++y)
 	{
 		for (int x = 0; x < N; ++x)
 		{
-			// Nincs mÈg kitˆltve?
-			if (data[y][x] == '0')
+			// Nincs m√©g kit√∂ltve?
+			if (data[y][x] == 0)
 			{
-				// Keress¸nk egy ÈrtÈket, amely megfelel a szab·lyoknak
+				// Keress√ºnk egy √©rt√©ket, amely megfelel a szab√°lyoknak
 				for (int n = 1; n <= N; ++n)
 				{
-					// BeÌrhatÛ az adott pozÌciÛba?
-					if (isAllowed(n + '0', x, y))
+					// Be√≠rhat√≥ az adott poz√≠ci√≥ba?
+					if (isAllowed(n, x, y))
 					{
-						// M·soljuk le a t·bl·t
-						Solver tmpSolver(this);
-						// Õrjuk bele az ˙j ÈrtÈket
-						tmpSolver.set(n + '0', x, y);
-						// PrÛb·ljuk megoldani az ˙j t·bl·t
+						// M√°soljuk le a t√°bl√°t
+						UeberSolver<N> tmpSolver(this);
+						// √çrjuk bele az √∫j √©rt√©ket
+						tmpSolver.set(n, x, y);
+						// Pr√≥b√°ljuk megoldani az √∫j t√°bl√°t
 						if (tmpSolver.solveBackTrack())
 						{
-							// Megold·s
+							// Megold√°s
 							*this = tmpSolver;
 							return true;
 						}
 					}
 				}
 			}
-			// Nem tudtunk ÈrtÈket Ìrni a cell·ba, Ìgy lÈpj¸nk vissza
-			if (data[y][x] == '0') return false;
+			// Nem tudtunk √©rt√©ket √≠rni a cell√°ba, √≠gy l√©pj√ºnk vissza
+			if (data[y][x] == 0) return false;
 		}
 	}
 
