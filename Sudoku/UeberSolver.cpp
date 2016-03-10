@@ -23,7 +23,7 @@ UeberSolver<N>::UeberSolver(const char * init)
 		for	(int j = 0; j < N; ++j)
 		{
 			const char value = init[i * N + j]-'0';
-			if (value != 0)
+			if (value != '\0')
 			{
 				// if the value is fixed, the only possible value is the given one
 				possible[i][j].push_back(value);
@@ -95,6 +95,7 @@ UeberSolver<N>::UeberSolver(const UeberSolver<N> * init)
 		for (int x = 0; x < N; ++x)
 		{
 			data[y][x] = init->data[y][x];
+			possible[y][x] = init->possible[y][x];
 		}
 	}
 }
@@ -106,7 +107,7 @@ void UeberSolver<N>::print(std::ostream & s)
 	{
 		for (int x = 0; x < N; ++x)
 		{
-			s << (char)(data[y][x]) << " ";
+			s << (int)(data[y][x]) << " ";
 		}
 		s << std::endl;
 	}
@@ -134,6 +135,11 @@ bool UeberSolver<N>::isAllowed(char val, int x, int y)
 	// Azonos sorban vagy oszlopban csak egy 'val' lehet
 	for (int i = 0; i < N; ++i)
 	{
+		//Ha a sorban vagy oszlopban egy másik elem csak 'val' értéket vehetne fel, akkor ellentmondásra jutnánk.
+		if (i != x && possible[y][i].size() == 1 && std::find(possible[y][i].begin(), possible[y][i].end(), val) != possible[y][i].end()) allowed = false;
+		if (i != y && possible[i][x].size() == 1 && std::find(possible[i][x].begin(), possible[i][x].end(), val) != possible[i][x].end()) allowed = false;
+
+		// Azonos sorban vagy oszlopban csak egy 'val' lehet
 		if (data[y][i] == val) allowed = false;
 		if (data[i][x] == val) allowed = false;
 	}
@@ -171,16 +177,16 @@ bool UeberSolver<N>::solveBackTrack()
 			// Nincs még kitöltve?
 			if (data[y][x] == 0)
 			{
-				// Keressünk egy értéket, amely megfelel a szabályoknak
-				for (int n = 1; n <= N; ++n)
+				// Keressünk egy értéket, amely megfelel a szabályoknak és a leghetséges értéknek
+				for (std::vector<char>::iterator n = possible[y][x].begin(); n != possible[y][x].end(); ++n)
 				{
 					// Beírható az adott pozícióba?
-					if (isAllowed(n, x, y))
+					if (isAllowed(*n, x, y))
 					{
 						// Másoljuk le a táblát
 						UeberSolver<N> tmpSolver(this);
 						// Írjuk bele az új értéket
-						tmpSolver.set(n, x, y);
+						tmpSolver.set(*n, x, y);
 						// Próbáljuk megoldani az új táblát
 						if (tmpSolver.solveBackTrack())
 						{
@@ -202,5 +208,14 @@ bool UeberSolver<N>::solveBackTrack()
 template<int N>
 void UeberSolver<N>::set(char val, int x, int y)
 {
+	//Elem beállítása
 	data[y][x] = val;
+
+	//Possible tábla frissítése
+	for (int i = 0; i < N; i++)
+	{
+		possible[y][i].erase(std::remove(possible[y][i].begin(), possible[y][i].end(), val), possible[y][i].end());
+		possible[i][x].erase(std::remove(possible[i][x].begin(), possible[i][x].end(), val), possible[i][x].end());
+	}
+	possible[y][x].push_back(val);
 }
