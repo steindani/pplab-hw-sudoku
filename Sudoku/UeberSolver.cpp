@@ -62,7 +62,7 @@ UeberSolver<N>::UeberSolver(const char * init)
 		}
 	}
 
-		// remove for every row
+	// remove for every column
 	for	(int j = 0; j < N; ++j)
 	{
 		vector<char> colvalues;
@@ -130,18 +130,19 @@ bool UeberSolver<N>::isSolved()
 template<int N>
 bool UeberSolver<N>::isAllowed(char val, int x, int y)
 {
-	bool allowed = true;
-
 	// Azonos sorban vagy oszlopban csak egy 'val' lehet
 	for (int i = 0; i < N; ++i)
 	{
 		//Ha a sorban vagy oszlopban egy másik elem csak 'val' értéket vehetne fel, akkor ellentmondásra jutnánk.
-		if (i != x && possible[y][i].size() == 1 && std::find(possible[y][i].begin(), possible[y][i].end(), val) != possible[y][i].end()) allowed = false;
-		if (i != y && possible[i][x].size() == 1 && std::find(possible[i][x].begin(), possible[i][x].end(), val) != possible[i][x].end()) allowed = false;
+		//if (i != x && possible[y][i].size() == 1 && std::find(possible[y][i].begin(), possible[y][i].end(), val) != possible[y][i].end()) allowed = false;
+		//if (i != y && possible[i][x].size() == 1 && std::find(possible[i][x].begin(), possible[i][x].end(), val) != possible[i][x].end()) allowed = false;
 
 		// Azonos sorban vagy oszlopban csak egy 'val' lehet
-		if (data[y][i] == val) allowed = false;
-		if (data[i][x] == val) allowed = false;
+		//if (data[y][i] == val) allowed = false;
+		//if (data[i][x] == val) allowed = false;
+
+		// szerintem elég ez:
+		if (data[y][i] == val || data[i][x] == val) return false;
 	}
 
 	int max = sqrt(N);
@@ -153,11 +154,11 @@ bool UeberSolver<N>::isAllowed(char val, int x, int y)
 	{
 		for (int x = cellBaseX; x < cellBaseX + max; ++x)
 		{
-			if (data[y][x] == val) allowed = false;
+			if (data[y][x] == val) return false;
 		}
 	}
 
-	return allowed;
+	return true;
 }
 
 template<int N>
