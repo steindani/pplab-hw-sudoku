@@ -1,6 +1,8 @@
 #include "UeberSolver.h"
 #include <algorithm>
 
+using std::swap;
+
 // Remove all in c2 from c1
 // source: http://stackoverflow.com/questions/28977799/c-equivalent-to-java-arraylist-method-removeall
 template<typename Collection1, typename Collection2>
@@ -117,9 +119,9 @@ template<int N>
 bool UeberSolver<N>::isSolved()
 {
 	// Minden cella ki van töltve a táblában?
-	for (int y = 0; y < 9; ++y)
+	for (int y = 0; y < N; ++y)
 	{
-		for (int x = 0; x < 9; ++x)
+		for (int x = 0; x < N; ++x)
 		{
 			if (data[y][x] == 0) return false;
 		}
@@ -134,12 +136,13 @@ bool UeberSolver<N>::isAllowed(char val, int x, int y)
 	for (int i = 0; i < N; ++i)
 	{
 		//Ha a sorban vagy oszlopban egy másik elem csak 'val' értéket vehetne fel, akkor ellentmondásra jutnánk.
-		//if (i != x && possible[y][i].size() == 1 && std::find(possible[y][i].begin(), possible[y][i].end(), val) != possible[y][i].end()) allowed = false;
-		//if (i != y && possible[i][x].size() == 1 && std::find(possible[i][x].begin(), possible[i][x].end(), val) != possible[i][x].end()) allowed = false;
+		//if (i != x && possible[y][i].size() == 1 && possible[y][i].at(0) == val) return false;
+		//if (i != y && possible[i][x].size() == 1 && possible[i][x].at(0) == val) return false;
 
 		// Azonos sorban vagy oszlopban csak egy 'val' lehet
-		//if (data[y][i] == val) allowed = false;
-		//if (data[i][x] == val) allowed = false;
+		//if (data[y][i] == val) return false;
+		//if (data[i][x] == val) return false;
+
 
 		// szerintem elég ez:
 		if (data[y][i] == val || data[i][x] == val) return false;
@@ -179,21 +182,25 @@ bool UeberSolver<N>::solveBackTrack()
 			if (data[y][x] == 0)
 			{
 				// Keressünk egy értéket, amely megfelel a szabályoknak és a leghetséges értéknek
-				for (std::vector<char>::iterator n = possible[y][x].begin(); n != possible[y][x].end(); ++n)
+				for (auto & n : possible[y][x])
 				{
 					// Beírható az adott pozícióba?
-					if (isAllowed(*n, x, y))
+					if (isAllowed(n, x, y))
 					{
 						// Másoljuk le a táblát
 						UeberSolver<N> tmpSolver(this);
 						// Írjuk bele az új értéket
-						tmpSolver.set(*n, x, y);
+						tmpSolver.set(n, x, y);
 						// Próbáljuk megoldani az új táblát
 						if (tmpSolver.solveBackTrack())
 						{
 							// Megoldás
 							*this = tmpSolver;
-							return true;
+							//return true;
+							std::cout << std::endl << "-----------------------------------------" << std::endl;
+							std::cout << "Solution:" << std::endl << std::endl;							
+							tmpSolver.print(std::cout);
+							return false;
 						}
 					}
 				}
@@ -215,8 +222,39 @@ void UeberSolver<N>::set(char val, int x, int y)
 	//Possible tábla frissítése
 	for (int i = 0; i < N; i++)
 	{
-		possible[y][i].erase(std::remove(possible[y][i].begin(), possible[y][i].end(), val), possible[y][i].end());
-		possible[i][x].erase(std::remove(possible[i][x].begin(), possible[i][x].end(), val), possible[i][x].end());
+		//Source: http://stackoverflow.com/questions/39912/how-do-i-remove-an-item-from-a-stl-vector-with-a-certain-value
+		auto it1 = std::find(possible[y][i].begin(), possible[y][i].end(), val);
+
+		if (it1 != possible[y][i].end()) {
+			// swap the one to be removed with the last element
+			// and remove the item at the end of the container
+			// to prevent moving all items after 'val' by one
+			swap(*it1, possible[y][i].back());
+			possible[y][i].pop_back();
+		}
+
+		if (i != x && possible[y][i].size() == 1)
+		{
+			if (isAllowed(possible[y][i].at(0), i, y))
+			{
+				data[y][i] = possible[y][i].at(0);
+			}
+		}
+		auto it2 = std::find(possible[i][x].begin(), possible[i][x].end(), val);
+
+		if (it2 != possible[i][x].end()) {
+			swap(*it2, possible[i][x].back());
+			possible[i][x].pop_back();
+		}	
+
+		if (i != y && possible[i][x].size() == 1)
+		{
+			if (isAllowed(possible[i][x].at(0), x, i))
+			{
+				data[i][x] = possible[i][x].at(0);
+			}
+		}
 	}
+	possible[y][x].clear();
 	possible[y][x].push_back(val);
 }
