@@ -40,51 +40,89 @@ UeberSolver<N>::UeberSolver(const char * init)
 		}
 	}
 
-	// remove for every row
-	for	(int i = 0; i < N; ++i)
+	bool hasTrivial = true;
+	while (hasTrivial)
 	{
-		vector<char> rowvalues;
+		hasTrivial = false;
+		// remove for every row
+		for (int i = 0; i < N; ++i)
+		{
+			vector<char> rowvalues;
 
-		for	(int j = 0; j < N; ++j)
-		{
-			rowvalues.push_back(data[i][j]);
-		}
-		
-		for	(int j = 0; j < N; ++j)
-		{
-			// remove false possible values
-			if (data[i][j] == 0)
+			for (int j = 0; j < N; ++j)
 			{
-				removeAll(possible[i][j], rowvalues);
-				if (possible[i][j].size() == 1)
+				rowvalues.push_back(data[i][j]);
+			}
+
+			for (int j = 0; j < N; ++j)
+			{
+				// remove false possible values
+				if (data[i][j] == 0)
 				{
-					data[i][j] = possible[i][j].front();
+					removeAll(possible[i][j], rowvalues);
+					if (possible[i][j].size() == 1)
+					{
+						hasTrivial = true;
+						set(possible[i][j].front(), j, i);
+						//data[i][j] = possible[i][j].front();
+					}
 				}
 			}
 		}
-	}
 
-	// remove for every column
-	for	(int j = 0; j < N; ++j)
-	{
-		vector<char> colvalues;
+		// remove for every column
+		for (int j = 0; j < N; ++j)
+		{
+			vector<char> colvalues;
 
-		for	(int i = 0; i < N; ++i)
-		{
-			colvalues.push_back(data[i][j]);
-		}
-		
-		for	(int i = 0; i < N; ++i)
-		{
-			// remove false possible values
-			if (data[i][j] == 0)
+			for (int i = 0; i < N; ++i)
 			{
-				removeAll(possible[i][j], colvalues);
-				if (possible[i][j].size() == 1)
+				colvalues.push_back(data[i][j]);
+			}
+
+			for (int i = 0; i < N; ++i)
+			{
+				// remove false possible values
+				if (data[i][j] == 0)
 				{
-					data[i][j] = possible[i][j].front();
+					removeAll(possible[i][j], colvalues);
+					if (possible[i][j].size() == 1)
+					{
+						hasTrivial = true;
+						//data[i][j] = possible[i][j].front();
+						set(possible[i][j].front(), j, i);
+					}
 				}
 			}
+		}
+
+		int max = sqrt(N);
+		//remove for every sqrt(N) x sqrt(N) table
+		for (int j = 0; j < N; ++j)
+		{
+			vector<char> tablevalues;
+
+			for (int i = 0; i < N; ++i)
+			{
+				int cellBaseX = max * (int)(i / max);
+				int cellBaseY = max * (int)(j / max);
+				for (int x = cellBaseX; x < cellBaseX + max; ++x)
+				{
+					for (int y = cellBaseY; y < cellBaseY + max; ++y)
+					{
+
+						tablevalues.push_back(data[x][y]);
+					}
+				}
+				removeAll(possible[i][j], tablevalues);
+				if (possible[i][j].size() == 1)
+				{
+					hasTrivial = true;
+					//data[i][j] = possible[i][j].front();
+					set(possible[i][j].front(), j, i);
+				}
+				tablevalues.clear();
+			}			
 		}
 	}
 }
@@ -172,7 +210,6 @@ bool UeberSolver<N>::solveBackTrack()
 	{
 		return true;
 	}
-
 	// Keressünk egy pozíciót, amely még nincs kitöltve
 	for (int y = 0; y < N; ++y)
 	{
@@ -182,7 +219,7 @@ bool UeberSolver<N>::solveBackTrack()
 			if (data[y][x] == 0)
 			{
 				// Keressünk egy értéket, amely megfelel a szabályoknak és a leghetséges értéknek
-				for (auto & n : possible[y][x])
+				for (auto const& n : possible[y][x])
 				{
 					// Beírható az adott pozícióba?
 					if (isAllowed(n, x, y))
@@ -209,7 +246,6 @@ bool UeberSolver<N>::solveBackTrack()
 			if (data[y][x] == 0) return false;
 		}
 	}
-
 	return false;
 }
 
@@ -219,7 +255,7 @@ void UeberSolver<N>::set(char val, int x, int y)
 	//Elem beállítása
 	data[y][x] = val;
 
-	//Possible tábla frissítése
+	//Possible tábla frissítése (val kivétele a sorból és oszlopból)
 	for (int i = 0; i < N; i++)
 	{
 		//Source: http://stackoverflow.com/questions/39912/how-do-i-remove-an-item-from-a-stl-vector-with-a-certain-value
@@ -245,13 +281,41 @@ void UeberSolver<N>::set(char val, int x, int y)
 		if (it2 != possible[i][x].end()) {
 			swap(*it2, possible[i][x].back());
 			possible[i][x].pop_back();
-		}	
+		}
 
 		if (i != y && possible[i][x].size() == 1)
 		{
 			if (isAllowed(possible[i][x].at(0), x, i))
 			{
 				data[i][x] = possible[i][x].at(0);
+			}
+		}
+	}
+
+	int max = sqrt(N);
+
+	// Az adott 3x3-as cellában csak egy 'val' lehet
+	int cellBaseX = max * (int)(x / max);
+	int cellBaseY = max * (int)(y / max);
+	for (int y = cellBaseY; y < cellBaseY + max; ++y)
+	{
+		for (int x = cellBaseX; x < cellBaseX + max; ++x)
+		{
+			if (data[y][x] == 0)
+			{
+				auto it1 = std::find(possible[y][x].begin(), possible[y][x].end(), val);
+
+				if (it1 != possible[y][x].end()) {
+					swap(*it1, possible[y][x].back());
+					possible[y][x].pop_back();
+				}
+				if (possible[y][x].size() == 1)
+				{
+					if (isAllowed(possible[y][x].at(0), x, y))
+					{
+						data[y][x] = possible[y][x].at(0);
+					}
+				}
 			}
 		}
 	}
