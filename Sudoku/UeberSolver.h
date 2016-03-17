@@ -4,6 +4,7 @@
 
 #include "Solver.h"
 #include <vector>
+#include <map>
 
 using namespace std;
 
@@ -11,8 +12,9 @@ template <int N>
 class UeberSolver : public Solver
 {
 private:
-	vector<char> possible[N][N];
+	static vector<char> possible[N][N];
 	char data[N][N];
+	map<string, vector<int>> similarPossibles;
 
 public:
 	UeberSolver(const char * init);
