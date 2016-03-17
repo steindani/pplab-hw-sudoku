@@ -14,6 +14,10 @@ void removeAll(Collection1& c1, const Collection2& c2)
 }
 
 template <int N>
+vector<char> UeberSolver<N>::possible[N][N];
+
+
+template <int N>
 UeberSolver<N>::UeberSolver(const char * init)
 {
 	vector<char> base;
@@ -125,6 +129,116 @@ UeberSolver<N>::UeberSolver(const char * init)
 			}			
 		}
 	}
+	
+	// Ha van olyan cellahalmaz, amelyben ugyanannyi lehetséges elem van, mint amennyi a cellák száma
+	// és ezek egy sorban, oszlopban vagy négyzetben helyezkednek el, akkor az adott sorban, oszlopban
+	// vagy négyzetben ezek a számok máshol már nem fordulhatnak elő.
+	for (int i = 0; i < N; ++i)
+	{
+		for (int j = 0; j < N; ++j)
+		{
+			if (possible[i][j].size()>1)
+			{
+				string key = "";
+				for (auto const& n : possible[i][j])
+				{
+					key += n;
+					key += ',';
+				}
+				vector<int> similarData = similarPossibles[key];
+				similarData.push_back(i * N + j);
+				similarPossibles[key] = similarData;
+			}
+		}
+	}
+	for (auto& iter : similarPossibles)
+	{
+		if (iter.first == "" || similarPossibles[iter.first].size() == 1)
+		{
+			continue;
+		}
+		vector<int> similarData = similarPossibles[iter.first];
+		size_t n = std::count(iter.first.begin(), iter.first.end(), ',');
+		if (similarData.size() == n)
+		{
+			int firstElement = similarData.at(0);
+			int rowNum = firstElement / N;
+			bool isSameRow = true;
+			int colNum = firstElement % N;
+			bool isSameCol = true;
+			int max = sqrt(N);
+			bool isSameTable = true;
+			int cellBaseX = max * (int)(rowNum / max);
+			int cellBaseY = max * (int)(colNum / max);
+			int cellMaxX = cellBaseX +(max - 1);
+			int cellMaxY = cellBaseY +(max - 1);
+
+			for (int i = 1; i < n; i++)
+			{
+				int currentElement = similarData.at(i);
+				int currentrowNum = currentElement / N;
+				int currentcolNum = currentElement % N;
+				if (isSameRow && rowNum != currentrowNum)
+				{
+					isSameRow = false;
+				}
+				if (isSameCol && colNum != currentcolNum)
+				{
+					isSameCol = false;
+				}
+				if (isSameTable && (currentrowNum<cellBaseX || currentrowNum > cellMaxX || currentcolNum < cellBaseY || currentcolNum > cellMaxX) )
+				{
+					isSameTable = false;
+				}
+			}
+			if (isSameCol || isSameRow || isSameTable)
+			{
+				vector<char> occupancyValues;				
+				for (auto const c : iter.first)
+				{
+					if (c != ',')
+					{
+						occupancyValues.push_back(c);
+					}
+				}
+				if (isSameRow)
+				{
+					for (size_t i = 0; i < N; i++)
+					{
+						removeAll(possible[rowNum][i], occupancyValues);
+					}					
+				}
+				if (isSameCol)
+				{
+					for (size_t i = 0; i < N; i++)
+					{
+						removeAll(possible[i][colNum], occupancyValues);
+					}
+				}
+				if (isSameTable)
+				{
+					for (int y = cellBaseY; y < cellBaseY + max; ++y)
+					{
+						for (int x = cellBaseX; x < cellBaseX + max; ++x)
+						{
+							removeAll(possible[x][y], occupancyValues);
+						}
+					}
+				}
+				for (int i = 0; i < n; i++)
+				{
+					int currentElement = similarData.at(i);
+					int currentrowNum = currentElement / N;
+					int currentcolNum = currentElement % N;
+					for (auto const c : occupancyValues)
+					{
+						possible[currentrowNum][currentcolNum].push_back(c);
+					}
+				}
+			}			
+
+		}
+	}
 }
 
 template<int N>
@@ -135,9 +249,9 @@ UeberSolver<N>::UeberSolver(const UeberSolver<N> * init)
 		for (int x = 0; x < N; ++x)
 		{
 			data[y][x] = init->data[y][x];
-			possible[y][x] = init->possible[y][x];
+			//possible[y][x] = init->possible[y][x];
 		}
-	}
+	}	
 }
 
 template<int N>
@@ -255,70 +369,4 @@ void UeberSolver<N>::set(char val, int x, int y)
 	//Elem beállítása
 	data[y][x] = val;
 
-	//Possible tábla frissítése (val kivétele a sorból és oszlopból)
-	for (int i = 0; i < N; i++)
-	{
-		//Source: http://stackoverflow.com/questions/39912/how-do-i-remove-an-item-from-a-stl-vector-with-a-certain-value
-		auto it1 = std::find(possible[y][i].begin(), possible[y][i].end(), val);
-
-		if (it1 != possible[y][i].end()) {
-			// swap the one to be removed with the last element
-			// and remove the item at the end of the container
-			// to prevent moving all items after 'val' by one
-			swap(*it1, possible[y][i].back());
-			possible[y][i].pop_back();
-		}
-
-		if (i != x && possible[y][i].size() == 1)
-		{
-			if (isAllowed(possible[y][i].at(0), i, y))
-			{
-				data[y][i] = possible[y][i].at(0);
-			}
-		}
-		auto it2 = std::find(possible[i][x].begin(), possible[i][x].end(), val);
-
-		if (it2 != possible[i][x].end()) {
-			swap(*it2, possible[i][x].back());
-			possible[i][x].pop_back();
-		}
-
-		if (i != y && possible[i][x].size() == 1)
-		{
-			if (isAllowed(possible[i][x].at(0), x, i))
-			{
-				data[i][x] = possible[i][x].at(0);
-			}
-		}
-	}
-
-	int max = sqrt(N);
-
-	// Az adott 3x3-as cellában csak egy 'val' lehet
-	int cellBaseX = max * (int)(x / max);
-	int cellBaseY = max * (int)(y / max);
-	for (int y = cellBaseY; y < cellBaseY + max; ++y)
-	{
-		for (int x = cellBaseX; x < cellBaseX + max; ++x)
-		{
-			if (data[y][x] == 0)
-			{
-				auto it1 = std::find(possible[y][x].begin(), possible[y][x].end(), val);
-
-				if (it1 != possible[y][x].end()) {
-					swap(*it1, possible[y][x].back());
-					possible[y][x].pop_back();
-				}
-				if (possible[y][x].size() == 1)
-				{
-					if (isAllowed(possible[y][x].at(0), x, y))
-					{
-						data[y][x] = possible[y][x].at(0);
-					}
-				}
-			}
-		}
-	}
-	possible[y][x].clear();
-	possible[y][x].push_back(val);
 }
